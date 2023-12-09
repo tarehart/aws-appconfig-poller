@@ -1,7 +1,7 @@
 {
   "name": "node-typescript-boilerplate",
   "version": "0.0.0",
-  "description": "Minimalistic boilerplate to quick-start Node.js development in TypeScript.",
+  "description": "A wrapper around @aws-sdk/client-appconfigdata to provide background polling and caching.",
   "type": "module",
   "engines": {
     "node": ">= 18.12 <19"
@@ -33,9 +33,10 @@
     "prettier": "prettier --config .prettierrc --write .",
     "test:watch": "jest --watch"
   },
-  "author": "Jakub Synowiec <jsynowiec@users.noreply.github.com>",
+  "author": "Tyler Arehart <tarehart@users.noreply.github.com>",
   "license": "Apache-2.0",
   "dependencies": {
+    "@aws-sdk/client-appconfigdata": "^3.470.0",
     "tslib": "~2.6"
   },
   "volta": {
