@@ -1,7 +1,5 @@
 # aws-appconfig-poller
 
-[![TypeScript version][ts-badge]][typescript-5-1]
-[![Node.js version][nodejs-badge]][nodejs]
 [![Build Status - GitHub Actions][gha-badge]][gha-ci]
 
 A wrapper around @aws-sdk/client-appconfigdata to provide background polling and caching.
@@ -33,3 +31,7 @@ const value = poller.getConfigurationString().latestValue;
 ## License
 
 Licensed under the MIT license. See the [LICENSE](https://github.com/tarehart/aws-appconfig-poller/blob/main/LICENSE) file for details.
+
+
+[gha-badge]: https://github.com/tarehart/aws-appconfig-poller/actions/workflows/nodejs.yml/badge.svg
+[gha-ci]: https://github.com/tarehart/aws-appconfig-poller/actions/workflows/nodejs.yml
