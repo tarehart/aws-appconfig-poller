@@ -32,4 +32,4 @@ const value = poller.getConfigurationString().latestValue;
 
 ## License
 
-Licensed under the APLv2. See the [LICENSE](https://github.com/tarehart/aws-appconfig-poller/blob/main/LICENSE) file for details.
+Licensed under the MIT license. See the [LICENSE](https://github.com/tarehart/aws-appconfig-poller/blob/main/LICENSE) file for details.

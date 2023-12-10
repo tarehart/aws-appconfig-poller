@@ -37,7 +37,7 @@
     "infinite": "tsc && node build/examples/infinitePoller.js"
   },
   "author": "Tyler Arehart <tarehart@users.noreply.github.com>",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "dependencies": {
     "@aws-sdk/client-appconfigdata": "^3.470.0",
     "tslib": "~2.6"
