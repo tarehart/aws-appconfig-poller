@@ -25,7 +25,6 @@ describe('Poller', () => {
   let poller: Poller<string> | undefined;
 
   afterAll(() => {
-    console.log('Stopping poller');
     poller.stop();
   });
 

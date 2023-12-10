@@ -149,10 +149,11 @@ export class Poller<T> {
       this.configurationToken = getResponse.NextPollConfigurationToken;
     }
 
-    if (getResponse.Configuration) {
+    const stringValue = getResponse.Configuration?.transformToString();
+
+    if (stringValue) {
       try {
-        this.configStringStore.latestValue =
-          getResponse.Configuration.transformToString();
+        this.configStringStore.latestValue = stringValue;
         this.configStringStore.lastFreshTime = new Date();
         this.configStringStore.versionLabel = getResponse.VersionLabel;
         this.configStringStore.errorCausingStaleValue = undefined;
@@ -176,8 +177,9 @@ export class Poller<T> {
         logger?.('Config string and object have gone stale', e);
       }
     } else {
-      // When the configuration in the getResponse is not defined, that means the configuration is
+      // When the configuration in the getResponse is empty, that means the configuration is
       // unchanged from the last time we polled.
+      // https://docs.aws.amazon.com/appconfig/2019-10-09/APIReference/API_appconfigdata_GetLatestConfiguration.html
       this.configStringStore.lastFreshTime = new Date();
       this.configObjectStore.lastFreshTime = new Date();
     }

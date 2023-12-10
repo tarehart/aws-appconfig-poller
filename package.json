@@ -7,6 +7,7 @@
     "node": ">= 18.12 <19"
   },
   "devDependencies": {
+    "@aws-sdk/credential-providers": "^3.470.0",
     "@types/jest": "~29.5",
     "@types/node": "~18",
     "@typescript-eslint/eslint-plugin": "~6.2",
@@ -20,10 +21,10 @@
     "rimraf": "~5.0",
     "ts-api-utils": "~1.0",
     "ts-jest": "~29.1",
-    "typescript": "~5.1"
+    "typescript": "~5.1",
+    "yaml": "^2.3.4"
   },
   "scripts": {
-    "start": "node build/src/main.js",
     "clean": "rimraf coverage build tmp",
     "prebuild": "npm run lint",
     "build": "tsc -p tsconfig.json",
@@ -32,7 +33,8 @@
     "lint": "eslint . --ext .ts --ext .mts",
     "test": "jest --coverage",
     "prettier": "prettier --config .prettierrc --write .",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "infinite": "tsc && node build/examples/infinitePoller.js"
   },
   "author": "Tyler Arehart <tarehart@users.noreply.github.com>",
   "license": "Apache-2.0",
