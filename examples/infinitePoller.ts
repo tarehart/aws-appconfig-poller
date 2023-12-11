@@ -57,7 +57,7 @@ const poller = new Poller<SampleFormat>({
     EnvironmentIdentifier: 'Live',
     ConfigurationProfileIdentifier: 'YamlTest',
   },
-  configTransformer: (s): SampleFormat => parse(s),
+  configParser: (s): SampleFormat => parse(s),
   logger: console.log,
   pollIntervalSeconds: 60,
 });

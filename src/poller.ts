@@ -6,11 +6,11 @@ import {
   StartConfigurationSessionCommandInput,
 } from '@aws-sdk/client-appconfigdata';
 
-interface PollerConfig<T> {
+export interface PollerConfig<T> {
   dataClient: AppConfigDataClient;
   sessionConfig: StartConfigurationSessionCommandInput;
   pollIntervalSeconds?: number;
-  configTransformer?: (s: string) => T;
+  configParser?: (s: string) => T;
   logger?: (s: string, obj?: unknown) => void;
 }
 
@@ -21,7 +21,7 @@ export interface ConfigStore<T> {
   versionLabel?: string;
 }
 
-type PollingPhase = 'ready' | 'active' | 'stopped';
+type PollingPhase = 'ready' | 'starting' | 'active' | 'stopped';
 
 /**
  * Starts polling immediately upon construction.
@@ -51,8 +51,9 @@ export class Poller<T> {
     if (this.pollingPhase != 'ready') {
       throw new Error('Can only call start() once for an instance of Poller!');
     }
-    this.pollingPhase = 'active';
+    this.pollingPhase = 'starting';
     await this.startPolling();
+    this.pollingPhase = 'active';
   }
 
   public stop(): void {
@@ -77,7 +78,7 @@ export class Poller<T> {
 
   /**
    * This returns a version of the config that's been parsed according to the
-   * configTransformer passed into this class. It's possible that this value is
+   * configParser passed into this class. It's possible that this value is
    * more stale than getConfigurationString, in the case where a new value
    * retrieved from AppConfig is malformed and the transformer has been failing.
    *
@@ -125,10 +126,27 @@ export class Poller<T> {
 
       this.processGetResponse(getResponse);
     } catch (e) {
-      // TODO: should we start a new configuration session in some cases?
       this.configStringStore.errorCausingStaleValue = e;
       this.configObjectStore.errorCausingStaleValue = e;
-      logger?.('Config string and object have gone stale', e);
+
+      if (this.pollingPhase === 'starting') {
+        // If we're part of the initial startup sequence, fail fast.
+        throw e;
+      }
+
+      logger?.(
+        'Values have gone stale, will wait and then start a new configuration session in response to error:',
+        e,
+      );
+
+      this.timeoutHandle = setTimeout(() => {
+        logger?.(
+          'Starting new configuration session in hopes of recovering...',
+        );
+        this.startPolling();
+      }, this.config.pollIntervalSeconds * 1000);
+
+      return;
     }
 
     const nextIntervalInSeconds = this.getNextIntervalInSeconds(
@@ -143,45 +161,51 @@ export class Poller<T> {
   private processGetResponse(
     getResponse: GetLatestConfigurationCommandOutput,
   ): void {
-    const { logger, configTransformer } = this.config;
+    const { logger } = this.config;
 
     if (getResponse.NextPollConfigurationToken) {
       this.configurationToken = getResponse.NextPollConfigurationToken;
     }
 
-    const stringValue = getResponse.Configuration?.transformToString();
+    try {
+      const stringValue = getResponse.Configuration?.transformToString();
 
-    if (stringValue) {
-      try {
-        this.configStringStore.latestValue = stringValue;
+      if (stringValue) {
+        this.cacheNewValue(stringValue, getResponse.VersionLabel);
+      } else {
+        // When the configuration in the getResponse is empty, that means the configuration is
+        // unchanged from the last time we polled.
+        // https://docs.aws.amazon.com/appconfig/2019-10-09/APIReference/API_appconfigdata_GetLatestConfiguration.html
         this.configStringStore.lastFreshTime = new Date();
-        this.configStringStore.versionLabel = getResponse.VersionLabel;
-        this.configStringStore.errorCausingStaleValue = undefined;
-
-        if (configTransformer) {
-          try {
-            this.configObjectStore.latestValue = configTransformer(
-              this.configStringStore.latestValue,
-            );
-            this.configObjectStore.lastFreshTime = new Date();
-            this.configObjectStore.versionLabel = getResponse.VersionLabel;
-            this.configObjectStore.errorCausingStaleValue = undefined;
-          } catch (e) {
-            this.configObjectStore.errorCausingStaleValue = e;
-            logger?.('Config object has gone stale', e);
-          }
-        }
-      } catch (e) {
-        this.configStringStore.errorCausingStaleValue = e;
-        this.configObjectStore.errorCausingStaleValue = e;
-        logger?.('Config string and object have gone stale', e);
+        this.configObjectStore.lastFreshTime = new Date();
       }
-    } else {
-      // When the configuration in the getResponse is empty, that means the configuration is
-      // unchanged from the last time we polled.
-      // https://docs.aws.amazon.com/appconfig/2019-10-09/APIReference/API_appconfigdata_GetLatestConfiguration.html
-      this.configStringStore.lastFreshTime = new Date();
-      this.configObjectStore.lastFreshTime = new Date();
+    } catch (e) {
+      this.configStringStore.errorCausingStaleValue = e;
+      this.configObjectStore.errorCausingStaleValue = e;
+      logger?.('Config string and object have gone stale:', e);
+    }
+  }
+
+  private cacheNewValue(stringValue: string, versionLabel?: string): void {
+    const { logger, configParser } = this.config;
+
+    this.configStringStore.latestValue = stringValue;
+    this.configStringStore.lastFreshTime = new Date();
+    this.configStringStore.versionLabel = versionLabel;
+    this.configStringStore.errorCausingStaleValue = undefined;
+
+    if (configParser) {
+      try {
+        this.configObjectStore.latestValue = configParser(
+          this.configStringStore.latestValue,
+        );
+        this.configObjectStore.lastFreshTime = new Date();
+        this.configObjectStore.versionLabel = versionLabel;
+        this.configObjectStore.errorCausingStaleValue = undefined;
+      } catch (e) {
+        this.configObjectStore.errorCausingStaleValue = e;
+        logger?.('Config object could not be parsed:', e);
+      }
     }
   }
 
