@@ -49,14 +49,18 @@ describe('Poller', () => {
       ...standardConfig,
     });
 
-    await poller.start();
+    const { isInitiallySuccessful, error } = await poller.start();
+
+    expect(isInitiallySuccessful).toBeTruthy();
+    expect(error).toBeUndefined();
+
     const latest = poller.getConfigurationString();
 
     expect(latest.latestValue).toEqual(configValue);
     expect(latest.errorCausingStaleValue).toBeUndefined();
   });
 
-  it('Bubbles up error on startup', async () => {
+  it('Reports error if startConfigurationSession fails', async () => {
     appConfigClientMock.on(StartConfigurationSessionCommand).rejects({
       message: 'Failed to start session',
     } as AwsError);
@@ -68,10 +72,14 @@ describe('Poller', () => {
       ...standardConfig,
     });
 
-    await expect(poller.start()).rejects.toThrow(Error);
+    const { isInitiallySuccessful, error } = await poller.start();
+
+    expect(isInitiallySuccessful).toBeFalsy();
+    expect(error).toBeDefined();
+    expect(error.message).toBe('Failed to start session');
   });
 
-  it('Bubbles up error if first getLatest fails', async () => {
+  it('Reports error if first getLatest fails', async () => {
     appConfigClientMock.on(StartConfigurationSessionCommand).resolves({
       InitialConfigurationToken: 'initialToken',
     });
@@ -87,7 +95,11 @@ describe('Poller', () => {
       ...standardConfig,
     });
 
-    await expect(poller.start()).rejects.toThrow(Error);
+    const { isInitiallySuccessful, error } = await poller.start();
+
+    expect(isInitiallySuccessful).toBeFalsy();
+    expect(error).toBeDefined();
+    expect(error.message).toBe('Failed to get latest');
   });
 
   it('Continues polling if first getLatest string cannot be parsed', async () => {

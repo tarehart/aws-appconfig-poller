@@ -12,6 +12,7 @@ Initialize:
 const poller = new Poller({
   dataClient: dataClient,
   sessionConfig: {
+    // This configuration will be specific to your app
     ApplicationIdentifier: 'MyApp',
     EnvironmentIdentifier: 'Test',
     ConfigurationProfileIdentifier: 'Config1',
@@ -22,11 +23,9 @@ const poller = new Poller({
   configParser: (s: string) => JSON.parse(s),
 });
 
-try {
-  await poller.start();
-} catch (e) {
-  // Handle any errors connecting to AppConfig
-}
+// We avoid bubbling up exceptions, and keep trying in the background
+// even if we were  not initially successful.
+const { isInitiallySuccessful, error } = await poller.start();
 ```
 
 Fetch:
@@ -34,7 +33,7 @@ Fetch:
 ```typescript
 // Instantly returns the cached configuration object that was
 // polled in the background.
-const configObject = poller.getConfigurationObject().latestValue;
+const { latestValue } = poller.getConfigurationObject();
 ```
 
 ## Error handling
@@ -45,7 +44,8 @@ A few things can go wrong when polling for AppConfig, such as:
 - The config document could have been changed to something your configParser can't handle.
 
 If there's an immediate connection problem during startup, and we're unable to retrieve the
-configuration even once, we'll fail fast from the poller.start() function.
+configuration even once, we'll report it in the response from poller.start(), and continue
+attempting to connect in the background.
 
 If we startup successfully, but some time later there are problems polling, we'll report
 the error via the errorCausingStaleValue response attribute and continue polling in hopes

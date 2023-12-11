@@ -21,13 +21,15 @@ export interface ConfigStore<T> {
   versionLabel?: string;
 }
 
+export interface Outcome {
+  isInitiallySuccessful: boolean;
+  error?: Error;
+}
+
 type PollingPhase = 'ready' | 'starting' | 'active' | 'stopped';
 
-/**
- * Starts polling immediately upon construction.
- */
 export class Poller<T> {
-  private readonly DEFAULT_POLL_INTERVAL_SECONDS = 30;
+  private readonly DEFAULT_POLL_INTERVAL_SECONDS = 60;
 
   private readonly config: PollerConfig<T>;
 
@@ -43,17 +45,33 @@ export class Poller<T> {
   constructor(config: PollerConfig<T>) {
     this.config = config;
 
+    const {
+      pollIntervalSeconds,
+      sessionConfig: { RequiredMinimumPollIntervalInSeconds: requiredMin },
+    } = config;
+
+    if (
+      pollIntervalSeconds &&
+      requiredMin &&
+      pollIntervalSeconds < requiredMin
+    ) {
+      throw new Error(
+        'Cannot configure a poll interval shorter than RequiredMinimumPollIntervalInSeconds',
+      );
+    }
+
     this.configStringStore = {};
     this.configObjectStore = {};
   }
 
-  public async start(): Promise<void> {
+  public async start(): Promise<Outcome> {
     if (this.pollingPhase != 'ready') {
       throw new Error('Can only call start() once for an instance of Poller!');
     }
     this.pollingPhase = 'starting';
-    await this.startPolling();
+    const result = await this.startPolling();
     this.pollingPhase = 'active';
+    return result;
   }
 
   public stop(): void {
@@ -94,25 +112,33 @@ export class Poller<T> {
     return this.configObjectStore;
   }
 
-  private async startPolling(): Promise<void> {
+  private async startPolling(): Promise<Outcome> {
     const { dataClient, sessionConfig } = this.config;
 
     const startCommand = new StartConfigurationSessionCommand(sessionConfig);
-    const result = await dataClient.send(startCommand);
 
-    if (!result.InitialConfigurationToken) {
-      throw new Error(
-        'Missing configuration token from AppConfig StartConfigurationSession response',
-      );
+    try {
+      const result = await dataClient.send(startCommand);
+
+      if (!result.InitialConfigurationToken) {
+        throw new Error(
+          'Missing configuration token from AppConfig StartConfigurationSession response',
+        );
+      }
+
+      this.configurationToken = result.InitialConfigurationToken;
+
+      return await this.fetchLatestConfiguration();
+    } catch (e) {
+      return {
+        isInitiallySuccessful: false,
+        error: e,
+      };
     }
-
-    this.configurationToken = result.InitialConfigurationToken;
-
-    await this.fetchLatestConfiguration();
   }
 
-  private async fetchLatestConfiguration(): Promise<void> {
-    const { dataClient, logger } = this.config;
+  private async fetchLatestConfiguration(): Promise<Outcome> {
+    const { dataClient, logger, pollIntervalSeconds } = this.config;
 
     const getCommand = new GetLatestConfigurationCommand({
       ConfigurationToken: this.configurationToken,
@@ -129,13 +155,9 @@ export class Poller<T> {
       this.configStringStore.errorCausingStaleValue = e;
       this.configObjectStore.errorCausingStaleValue = e;
 
-      if (this.pollingPhase === 'starting') {
-        // If we're part of the initial startup sequence, fail fast.
-        throw e;
-      }
-
       logger?.(
-        'Values have gone stale, will wait and then start a new configuration session in response to error:',
+        `Failed to get value from AppConfig during ${this.pollingPhase} phase!` +
+          `Will wait ${pollIntervalSeconds}s and then start a new configuration session in response to error:`,
         e,
       );
 
@@ -144,9 +166,12 @@ export class Poller<T> {
           'Starting new configuration session in hopes of recovering...',
         );
         this.startPolling();
-      }, this.config.pollIntervalSeconds * 1000);
+      }, pollIntervalSeconds * 1000);
 
-      return;
+      return {
+        isInitiallySuccessful: false,
+        error: e,
+      };
     }
 
     const nextIntervalInSeconds = this.getNextIntervalInSeconds(
@@ -156,6 +181,10 @@ export class Poller<T> {
     this.timeoutHandle = setTimeout(() => {
       this.fetchLatestConfiguration();
     }, nextIntervalInSeconds * 1000);
+
+    return {
+      isInitiallySuccessful: true,
+    };
   }
 
   private processGetResponse(
@@ -210,6 +239,12 @@ export class Poller<T> {
   }
 
   private getNextIntervalInSeconds(awsSuggestedSeconds?: number): number {
+    const { pollIntervalSeconds } = this.config;
+
+    if (awsSuggestedSeconds && pollIntervalSeconds) {
+      return Math.max(awsSuggestedSeconds, pollIntervalSeconds);
+    }
+
     return (
       this.config.pollIntervalSeconds ||
       awsSuggestedSeconds ||

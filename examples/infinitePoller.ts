@@ -62,14 +62,19 @@ const poller = new Poller<SampleFormat>({
   pollIntervalSeconds: 60,
 });
 
-await poller.start();
+const { isInitiallySuccessful, error } = await poller.start();
 
-console.log('Starting at:', new Date());
+if (!isInitiallySuccessful) {
+  poller.stop();
+  throw new Error('Startup failed', { cause: error });
+}
+
+console.log('Connection succeeded at:', new Date());
 
 setInterval(() => {
   const obj = poller.getConfigurationObject();
   console.log('Current config entry', obj);
-}, 1000 * 60);
+}, 1000 * 5);
 
 // This will run forever until you manually terminate it.
 // Normally you would call poller.stop() if you want the program to exit.

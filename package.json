@@ -1,6 +1,6 @@
 {
   "name": "aws-appconfig-poller",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A wrapper around @aws-sdk/client-appconfigdata to provide background polling and caching.",
   "repository": {
     "type": "git",
