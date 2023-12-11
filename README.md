@@ -1,5 +1,6 @@
 # aws-appconfig-poller
 
+[![npm version][npm-badge]][npm-url]
 [![Build Status - GitHub Actions][gha-badge]][gha-ci]
 
 A wrapper around @aws-sdk/client-appconfigdata to provide background polling and caching.
@@ -82,3 +83,5 @@ Licensed under the MIT license. See the [LICENSE](https://github.com/tarehart/aw
 
 [gha-badge]: https://github.com/tarehart/aws-appconfig-poller/actions/workflows/nodejs.yml/badge.svg
 [gha-ci]: https://github.com/tarehart/aws-appconfig-poller/actions/workflows/nodejs.yml
+[npm-badge]: https://badge.fury.io/js/aws-appconfig-poller.svg
+[npm-url]: https://www.npmjs.com/package/aws-appconfig-poller
