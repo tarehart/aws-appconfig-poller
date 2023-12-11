@@ -71,6 +71,8 @@ if (!isInitiallySuccessful) {
 
 console.log('Connection succeeded at:', new Date());
 
+// Normally you would not use setInterval in your app, this is just to help us
+// periodically log the state of the configuration object to prove it's working.
 setInterval(() => {
   const obj = poller.getConfigurationObject();
   console.log('Current config entry', obj);

@@ -4,11 +4,26 @@
 
 A wrapper around @aws-sdk/client-appconfigdata to provide background polling and caching.
 
+Although AWS seems to recommend their [simplified retrieval methods](https://docs.aws.amazon.com/appconfig/latest/userguide/appconfig-retrieving-simplified-methods.html) for fetching AppConfig, i.e. running an agent in a separate process, you may prefer to use this library:
+
+- You don't need to set up a lambda extension.
+- You easily get parity between your local development server and prod.
+- The parsed version of your config is conveniently cached.
+- You get convenient reporting of transient errors while the library works in the background to recover.
+
 ## Usage
 
 Initialize:
 
 ```typescript
+import { AppConfigDataClient } from '@aws-sdk/client-appconfigdata';
+import { Poller } from 'aws-appconfig-poller';
+
+const dataClient = new AppConfigDataClient({
+  // Set up credentials, region, etc, as necessary.
+  credentials: undefined,
+});
+
 const poller = new Poller({
   dataClient: dataClient,
   sessionConfig: {
@@ -35,6 +50,8 @@ Fetch:
 // polled in the background.
 const { latestValue } = poller.getConfigurationObject();
 ```
+
+For full working code, see examples/infinitePoller.ts.
 
 ## Error handling
 
