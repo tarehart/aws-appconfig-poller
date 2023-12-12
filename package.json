@@ -1,6 +1,6 @@
 {
   "name": "aws-appconfig-poller",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A wrapper around @aws-sdk/client-appconfigdata to provide background polling and caching.",
   "repository": {
     "type": "git",
@@ -10,6 +10,9 @@
   "engines": {
     "node": ">= 18.12 <21"
   },
+  "main": "dist/src/poller.js",
+  "types": "dist/src/poller.d.ts",
+  "files": ["dist"],
   "devDependencies": {
     "@aws-sdk/credential-providers": "^3.470.0",
     "@types/jest": "~29.5",
@@ -29,7 +32,7 @@
     "yaml": "^2.3.4"
   },
   "scripts": {
-    "clean": "rimraf coverage build tmp",
+    "clean": "rimraf coverage build tmp lib",
     "prebuild": "npm run lint",
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -w -p tsconfig.json",
