@@ -52,7 +52,7 @@ Fetch:
 const { latestValue } = poller.getConfigurationObject();
 ```
 
-For full working code, see examples/infinitePoller.ts.
+For full working code, see [examples/infinitePoller.ts](https://github.com/tarehart/aws-appconfig-poller/blob/main/examples/infinitePoller.ts).
 
 ## Error handling
 
