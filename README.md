@@ -3,14 +3,15 @@
 [![npm version][npm-badge]][npm-url]
 [![Build Status - GitHub Actions][gha-badge]][gha-ci]
 
-A wrapper around @aws-sdk/client-appconfigdata to provide background polling and caching.
+This library polls AWS AppConfig on a background thread so your app has instant access to a cached version of your configuration.
+It relies on the official @aws-sdk/client-appconfigdata library to fetch the data.
 
 Although AWS seems to recommend their [simplified retrieval methods](https://docs.aws.amazon.com/appconfig/latest/userguide/appconfig-retrieving-simplified-methods.html) for fetching AppConfig, i.e. running an agent in a separate process, you may prefer to use this library:
 
 - You don't need to set up a lambda extension.
 - You easily get parity between your local development server and prod.
 - The parsed version of your config is conveniently cached.
-- You get convenient reporting of transient errors while the library works in the background to recover.
+- You get reporting of transient errors while the library works in the background to recover.
 
 ## Usage
 

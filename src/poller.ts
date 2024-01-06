@@ -28,8 +28,9 @@ export interface Outcome {
 
 type PollingPhase = 'ready' | 'starting' | 'active' | 'stopped';
 
+const DEFAULT_POLL_INTERVAL_SECONDS = 60;
+
 export class Poller<T> {
-  private readonly DEFAULT_POLL_INTERVAL_SECONDS = 60;
 
   private readonly config: PollerConfig<T>;
 
@@ -130,6 +131,7 @@ export class Poller<T> {
 
       return await this.fetchLatestConfiguration();
     } catch (e) {
+      this.timeoutHandle = setTimeout(this.startPolling.bind(this), this.config.pollIntervalSeconds || DEFAULT_POLL_INTERVAL_SECONDS)
       return {
         isInitiallySuccessful: false,
         error: e,
@@ -248,7 +250,7 @@ export class Poller<T> {
     return (
       this.config.pollIntervalSeconds ||
       awsSuggestedSeconds ||
-      this.DEFAULT_POLL_INTERVAL_SECONDS
+      DEFAULT_POLL_INTERVAL_SECONDS
     );
   }
 }

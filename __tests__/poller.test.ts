@@ -180,4 +180,46 @@ describe('Poller', () => {
       standardConfig.configParser(configValue2),
     );
   });
+
+  it('Retries start session if first one fails', async () => {
+    const configValue = 'worked once';
+
+    appConfigClientMock.on(StartConfigurationSessionCommand)
+      .rejectsOnce({
+        message: 'Failed to start',
+      })
+      .resolves({
+        InitialConfigurationToken: 'initialToken',
+      });
+
+    appConfigClientMock
+      .on(GetLatestConfigurationCommand)
+      .resolves({
+        Configuration: Uint8ArrayBlobAdapter.fromString(configValue),
+      });
+
+    const dataClient = new AppConfigDataClient();
+
+    poller = new Poller({
+      dataClient: dataClient,
+      ...standardConfig,
+    });
+
+    const initialResponse = await poller.start();
+    expect(initialResponse.error).toBeDefined();
+    expect(initialResponse.isInitiallySuccessful).toBeFalsy();
+
+    const latest = poller.getConfigurationString();
+
+    expect(latest.latestValue).toBeUndefined();
+    expect(latest.errorCausingStaleValue).toBeUndefined();
+
+    await wait(standardConfig.pollIntervalSeconds * 1000 + 100);
+
+    const updated = poller.getConfigurationObject();
+    expect(updated.errorCausingStaleValue).toBeUndefined();
+    expect(updated.latestValue).toEqual(
+      standardConfig.configParser(configValue),
+    );
+  });
 });

@@ -1,6 +1,6 @@
 {
   "name": "aws-appconfig-poller",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A wrapper around @aws-sdk/client-appconfigdata to provide background polling and caching.",
   "repository": {
     "type": "git",
@@ -41,7 +41,7 @@
     "test": "jest --coverage",
     "prettier": "prettier --config .prettierrc --write .",
     "test:watch": "jest --watch",
-    "infinite": "tsc && node build/examples/infinitePoller.js"
+    "infinite": "tsc && node dist/examples/infinitePoller.js"
   },
   "author": "Tyler Arehart <tarehart@users.noreply.github.com>",
   "license": "MIT",
